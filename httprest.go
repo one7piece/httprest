@@ -17,7 +17,7 @@ type HttpContext struct {
 	W      http.ResponseWriter
 	R      *http.Request
 	User   User
-	Params httprouter.Params
+	params httprouter.Params
 }
 
 type Handler interface {
@@ -43,7 +43,7 @@ func (rest *HttpRest) LOGON(pattern string) {
 	// assume the logon pattern will be POST
 	rest.Router.POST(pattern, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// create context
-		ctx := HttpContext{W: w, R: r, Params: p}
+		ctx := HttpContext{W: w, R: r, params: p}
 		if rest.Auth != nil {
 			rest.Auth.Login(&ctx)
 		}
@@ -53,7 +53,7 @@ func (rest *HttpRest) LOGON(pattern string) {
 func (rest *HttpRest) GET(pattern string, handler func(ctx *HttpContext)) {
 	rest.Router.GET(pattern, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// create context
-		ctx := HttpContext{W: w, R: r, Params: p}
+		ctx := HttpContext{W: w, R: r, params: p}
 		// authenticate
 		if rest.Auth != nil && !rest.Auth.Authenticate(&ctx) {
 			ctx.RespERRString(http.StatusForbidden, "Not logged in!")
@@ -66,7 +66,7 @@ func (rest *HttpRest) GET(pattern string, handler func(ctx *HttpContext)) {
 func (rest *HttpRest) POST(pattern string, handler func(ctx *HttpContext)) {
 	rest.Router.POST(pattern, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		// create context
-		ctx := HttpContext{W: w, R: r, Params: p}
+		ctx := HttpContext{W: w, R: r, params: p}
 		// authenticate
 		if rest.Auth != nil && !rest.Auth.Authenticate(&ctx) {
 			ctx.RespERRString(http.StatusForbidden, "Not logged in!")
@@ -74,6 +74,14 @@ func (rest *HttpRest) POST(pattern string, handler func(ctx *HttpContext)) {
 		// if authenticate, pass to handle
 		handler(&ctx)
 	})
+}
+
+func (ctx *HttpContext) GetPayload(p *interface{}) error {
+	return json.NewDecoder(ctx.R.Body).Decode(p)
+}
+
+func (ctx *HttpContext) GetParam(name string) string {
+	return ctx.params.ByName(name)
 }
 
 func (ctx *HttpContext) RespOK(value interface{}) error {
