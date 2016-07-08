@@ -11,8 +11,14 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type Authenticator interface {
+	Validate(username string, password string) bool
+	GetRoles(username string) []string
+}
+
 type JWTAuth struct {
 	SecretKey []byte
+	Handler   Authenticator
 }
 
 type JWTToken struct {
@@ -22,11 +28,18 @@ type JWTToken struct {
 }
 
 func (auth JWTAuth) Login(ctx *HttpContext) bool {
+	if auth.Handler == nil {
+		fmt.Println("Authenticator not specified!")
+		ctx.RespERRString(http.StatusInternalServerError, "No authenticator specified.")
+		return false
+	}
+
 	encoded := strings.Replace(ctx.R.Header.Get("Authorization"), "Authorization ", "", -1)
 	fmt.Println("encoded username/password: ", encoded)
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		fmt.Println("decode error:", err)
+		ctx.RespERRString(http.StatusForbidden, "Invalid authorization header!")
 		return false
 	}
 	arr := strings.Split(string(decoded), ":")
@@ -35,13 +48,13 @@ func (auth JWTAuth) Login(ctx *HttpContext) bool {
 		return false
 	}
 	username := arr[0]
-	// validate the password
 	password := arr[1]
-	if password != username {
+	// validate the password
+	if !auth.Handler.Validate(username, password) {
 		ctx.RespERRString(http.StatusForbidden, "Invalid username or password")
 		return false
 	}
-	roles := []string{"admin", "operator"}
+	roles := auth.Handler.GetRoles(username)
 	fmt.Println("decoded username/password: "+username+"/"+password+", ", roles)
 
 	// create jwt token
@@ -60,8 +73,12 @@ func (auth JWTAuth) Login(ctx *HttpContext) bool {
 	err = ctx.RespOK(jwtToken)
 	if err != nil {
 		fmt.Println("Failed to marshal response", err)
+		ctx.RespERRString(http.StatusInternalServerError, "Failed to marshal response!")
 		return false
 	}
+	// create context user
+	ctx.User.Name = username
+	ctx.User.Roles = roles
 	return true
 }
 
