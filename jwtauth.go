@@ -17,8 +17,9 @@ type Authenticator interface {
 }
 
 type JWTAuth struct {
-	SecretKey []byte
-	Handler   Authenticator
+	SecretKey  []byte
+	Handler    Authenticator
+	TimeoutSec int
 }
 
 type JWTToken struct {
@@ -99,12 +100,15 @@ func (auth JWTAuth) Authenticate(ctx *HttpContext) bool {
 func (auth JWTAuth) createJWT(username string, roles []string) (string, error) {
 	rolesJson, _ := json.Marshal(roles)
 	fmt.Println("createJWT - rolesJson:" + string(rolesJson))
-
+	sessionTimeoutSec := auth.TimeoutSec
+	if sessionTimeoutSec <= 0 {
+		sessionTimeoutSec = 30 * 60
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  username,
 		"rol": string(rolesJson),
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(time.Minute * 30).Unix(),
+		"exp": time.Now().Add(time.Second * time.Duration(sessionTimeoutSec)).Unix(),
 	})
 	return token.SignedString(auth.SecretKey)
 }
@@ -122,5 +126,6 @@ func (auth JWTAuth) validateJWT(r *http.Request) (*jwt.Token, error) {
 	if err == nil && token.Valid {
 		return token, nil
 	}
+	fmt.Printf("valid JWT:%s (err=%s)\n", token.Valid, err)
 	return nil, err
 }
