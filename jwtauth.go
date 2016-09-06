@@ -30,16 +30,16 @@ type JWTToken struct {
 
 func (auth JWTAuth) Login(ctx *HttpContext) bool {
 	if auth.Handler == nil {
-		fmt.Println("Authenticator not specified!")
+		//fmt.Println("Authenticator not specified!")
 		ctx.RespERRString(http.StatusInternalServerError, "No authenticator specified.")
 		return false
 	}
 
 	encoded := strings.Replace(ctx.R.Header.Get("Authorization"), "Authorization ", "", -1)
-	fmt.Println("encoded username/password: ", encoded)
+	//fmt.Println("encoded username/password: ", encoded)
 	decoded, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
-		fmt.Println("decode error:", err)
+		//fmt.Println("decode error:", err)
 		ctx.RespERRString(http.StatusForbidden, "Invalid authorization header!")
 		return false
 	}
@@ -56,17 +56,17 @@ func (auth JWTAuth) Login(ctx *HttpContext) bool {
 		return false
 	}
 	roles := auth.Handler.GetRoles(username)
-	fmt.Println("decoded username/password: "+username+"/"+password+", ", roles)
+	//fmt.Println("decoded username/password: "+username+"/"+password+", ", roles)
 
 	// create jwt token
-	fmt.Println("creating jwt token...")
+	//fmt.Println("creating jwt token...")
 	token, err := auth.createJWT(username, roles)
 	if err != nil {
 		fmt.Println("Error creating jwt token:", err)
 		ctx.RespERRString(http.StatusForbidden, "Invalid authorization header!")
 		return false
 	}
-	fmt.Println("jwt token:", token)
+	//fmt.Println("jwt token:", token)
 
 	// return the token & user's roles
 	jwtToken := JWTToken{Username: username, Roles: roles, Token: token}
@@ -86,11 +86,11 @@ func (auth JWTAuth) Login(ctx *HttpContext) bool {
 func (auth JWTAuth) Authenticate(ctx *HttpContext) bool {
 	token, err := auth.validateJWT(ctx.R)
 	if err != nil {
-		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("validate error: %s\n", err.Error())
 		return false
 	}
 	claims := token.Claims.(jwt.MapClaims)
-	fmt.Printf("%v\n", claims)
+	//fmt.Printf("%v\n", claims)
 	ctx.User.Name = claims["id"].(string)
 	roles := claims["rol"].(string)
 	json.Unmarshal([]byte(roles), &ctx.User.Roles)
@@ -99,7 +99,7 @@ func (auth JWTAuth) Authenticate(ctx *HttpContext) bool {
 
 func (auth JWTAuth) createJWT(username string, roles []string) (string, error) {
 	rolesJson, _ := json.Marshal(roles)
-	fmt.Println("createJWT - rolesJson:" + string(rolesJson))
+	//fmt.Println("createJWT - rolesJson:" + string(rolesJson))
 	sessionTimeoutSec := auth.TimeoutSec
 	if sessionTimeoutSec <= 0 {
 		sessionTimeoutSec = 30 * 60
@@ -126,6 +126,6 @@ func (auth JWTAuth) validateJWT(r *http.Request) (*jwt.Token, error) {
 	if err == nil && token.Valid {
 		return token, nil
 	}
-	fmt.Printf("valid JWT:%s (err=%s)\n", token.Valid, err)
+	//fmt.Printf("valid JWT:%s (err=%s)\n", token.Valid, err)
 	return nil, err
 }

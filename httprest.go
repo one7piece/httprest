@@ -43,19 +43,19 @@ func New() *HttpRest {
 
 func (rest *HttpRest) handlePreflight(pattern string) {
 	rest.Router.OPTIONS(pattern, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		fmt.Printf("OPTIONS - url:%v\n", r.URL)
+		//fmt.Printf("OPTIONS - url:%v\n", r.URL)
 		rest.handleCors(w, r)
 	})
 }
 
 func (rest *HttpRest) handleCors(w http.ResponseWriter, r *http.Request) bool {
-	fmt.Printf("handleCors - URL:%s, request headers:%+v", r.URL, r.Header)
+	//fmt.Printf("handleCors - URL:%s, request headers:%+v", r.URL, r.Header)
 	if rest.CorsPt != nil {
 		rest.CorsPt.HandlerFunc(w, r)
-		fmt.Printf("handleCors - handle url:%s, request headers:%+v, response headers:%+v\n", r.URL, r.Header, w.Header())
+		//fmt.Printf("handleCors - handle url:%s, request headers:%+v, response headers:%+v\n", r.URL, r.Header, w.Header())
 		return (r.Method == "OPTIONS")
 	}
-	fmt.Printf("handleCors - no handle url:%s, response headers:%+v\n", r.URL, w.Header())
+	//fmt.Printf("handleCors - no handle url:%s, response headers:%+v\n", r.URL, w.Header())
 	return false
 }
 
