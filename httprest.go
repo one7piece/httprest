@@ -91,14 +91,14 @@ func (rest *HttpRest) Handle(method string, pattern string, handler func(ctx *Ht
 	})
 }
 
-func (rest *HttpRest) GET(pattern string, handler func(ctx *HttpContext)) {
+func (rest *HttpRest) GET(validate bool, pattern string, handler func(ctx *HttpContext)) {
 	rest.handlePreflight(pattern)
 	rest.Router.GET(pattern, func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		rest.handleCors(w, r)
 		// create context
 		ctx := HttpContext{W: w, R: r, params: p}
 		// authenticate
-		if rest.Auth != nil && !rest.Auth.Authenticate(&ctx) {
+		if validate && rest.Auth != nil && !rest.Auth.Authenticate(&ctx) {
 			ctx.RespERRString(http.StatusForbidden, "Not logged in!")
 			return
 		}
